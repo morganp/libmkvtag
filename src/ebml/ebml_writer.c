@@ -8,7 +8,7 @@
 #include "ebml_writer.h"
 #include "ebml_vint.h"
 #include "ebml_ids.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 #include <string.h>
 

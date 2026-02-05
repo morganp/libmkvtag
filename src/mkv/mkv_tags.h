@@ -8,7 +8,7 @@
 #ifndef MKV_TAGS_H
 #define MKV_TAGS_H
 
-#include "../../include/mkvtag/mkvtag_types.h"
+#include "../include/mkvtag/mkvtag_types.h"
 #include "mkv_parser.h"
 #include "../util/buffer.h"
 

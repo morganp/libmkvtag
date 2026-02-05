@@ -130,7 +130,6 @@ All functions return `MKVTAG_OK` (0) on success or a negative error code. Use `m
 ## Project Structure
 
 ```
-libmkvtag/
 ├── include/mkvtag/         Public headers + Swift module map
 │   ├── mkvtag.h            Main API
 │   ├── mkvtag_types.h      Type definitions

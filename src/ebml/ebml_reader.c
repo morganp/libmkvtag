@@ -7,7 +7,7 @@
 
 #include "ebml_reader.h"
 #include "ebml_vint.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 #include <stdio.h>
 #include <stdlib.h>

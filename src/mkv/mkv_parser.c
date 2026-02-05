@@ -10,7 +10,7 @@
 #include "../ebml/ebml_ids.h"
 #include "../ebml/ebml_reader.h"
 #include "../ebml/ebml_vint.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 #include <stdio.h>
 #include <string.h>

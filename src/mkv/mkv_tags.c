@@ -11,7 +11,7 @@
 #include "../ebml/ebml_writer.h"
 #include "../ebml/ebml_vint.h"
 #include "../util/string_util.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 #include <stdio.h>
 #include <stdlib.h>

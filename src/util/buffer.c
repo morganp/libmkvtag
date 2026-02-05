@@ -6,7 +6,7 @@
  */
 
 #include "buffer.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 #include <stdlib.h>
 #include <string.h>

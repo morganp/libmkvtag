@@ -6,7 +6,7 @@
  */
 
 #include "ebml_vint.h"
-#include "../../include/mkvtag/mkvtag_error.h"
+#include "../include/mkvtag/mkvtag_error.h"
 
 int ebml_vint_size(uint64_t value) {
     if (value <= EBML_VINT_MAX_1) return 1;
