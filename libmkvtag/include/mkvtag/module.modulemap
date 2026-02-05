@@ -1,0 +1,6 @@
+module mkvtag {
+    header "mkvtag.h"
+    header "mkvtag_types.h"
+    header "mkvtag_error.h"
+    export *
+}

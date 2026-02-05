@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+output/
+*.o
+*.a
+*.xcframework/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code
+.claude/
