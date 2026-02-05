@@ -16,6 +16,23 @@ FRAMEWORK_NAME="mkvtag"
 MACOS_DEPLOYMENT_TARGET="10.15"
 IOS_DEPLOYMENT_TARGET="13.0"
 
+# Source files
+SOURCES=(
+    src/ebml/ebml_vint.c
+    src/ebml/ebml_reader.c
+    src/ebml/ebml_writer.c
+    src/io/file_io.c
+    src/util/buffer.c
+    src/util/string_util.c
+    src/mkv/mkv_parser.c
+    src/mkv/mkv_tags.c
+    src/mkv/mkv_seekhead.c
+    src/mkvtag.c
+)
+
+CFLAGS=(-std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -O2)
+INCLUDES=("-I${SCRIPT_DIR}/include" "-I${SCRIPT_DIR}/src")
+
 # Clean if requested
 if [[ "${1:-}" == "--clean" ]]; then
     echo "Cleaning build directory..."
@@ -24,114 +41,168 @@ fi
 
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 
-# Helper function to build for a specific platform
+# Build static library for a platform/arch combination
 build_platform() {
     local platform="$1"
-    local arch="$2"
-    local sysroot="$3"
-    local deployment_target="$4"
-    local extra_flags="${5:-}"
-    local build_subdir="${BUILD_DIR}/${platform}-${arch}"
+    local archs="$2"
+    local sdk="$3"
+    local min_version_flag="$4"
+    local build_subdir="${BUILD_DIR}/${platform}"
 
-    echo "=== Building for ${platform} (${arch}) ==="
+    echo ""
+    echo "=== Building for ${platform} (${archs}) ==="
 
-    mkdir -p "${build_subdir}"
+    mkdir -p "${build_subdir}/obj"
 
-    local cmake_flags=(
-        -DCMAKE_C_COMPILER="$(xcrun --find clang)"
-        -DCMAKE_AR="$(xcrun --find ar)"
-        -DCMAKE_RANLIB="$(xcrun --find ranlib)"
-        -DCMAKE_OSX_SYSROOT="${sysroot}"
-        -DCMAKE_OSX_ARCHITECTURES="${arch}"
-        -DCMAKE_C_FLAGS="${extra_flags}"
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX="${build_subdir}/install"
-    )
+    local sdk_path
+    sdk_path="$(xcrun --sdk "${sdk}" --show-sdk-path)"
 
-    if [[ "${platform}" == "ios"* ]]; then
-        cmake_flags+=(
-            -DCMAKE_OSX_DEPLOYMENT_TARGET="${IOS_DEPLOYMENT_TARGET}"
-            -DCMAKE_SYSTEM_NAME=iOS
-        )
-        if [[ "${platform}" == "ios-simulator" ]]; then
-            cmake_flags+=(
-                -DCMAKE_OSX_SYSROOT="iphonesimulator"
-            )
-        else
-            cmake_flags+=(
-                -DCMAKE_OSX_SYSROOT="iphoneos"
-            )
-        fi
-    else
-        cmake_flags+=(
-            -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOS_DEPLOYMENT_TARGET}"
-        )
-    fi
+    local arch_flags=""
+    for arch in ${archs}; do
+        arch_flags="${arch_flags} -arch ${arch}"
+    done
 
-    cmake -S "${SCRIPT_DIR}" -B "${build_subdir}" "${cmake_flags[@]}"
-    cmake --build "${build_subdir}" --config Release -- -j"$(sysctl -n hw.ncpu)"
-    cmake --install "${build_subdir}" --config Release
+    # Compile each source file
+    local obj_files=()
+    for src in "${SOURCES[@]}"; do
+        local base
+        base="$(basename "${src}" .c)"
+        local obj="${build_subdir}/obj/${base}.o"
+        obj_files+=("${obj}")
+
+        xcrun clang "${CFLAGS[@]}" "${INCLUDES[@]}" \
+            -isysroot "${sdk_path}" \
+            ${arch_flags} \
+            "${min_version_flag}" \
+            -c "${SCRIPT_DIR}/${src}" \
+            -o "${obj}"
+    done
+
+    # Create static library
+    xcrun ar rcs "${build_subdir}/libmkvtag.a" "${obj_files[@]}"
+    echo "  Built: ${build_subdir}/libmkvtag.a"
 }
 
-# Get SDK paths
-MACOS_SDK="$(xcrun --sdk macosx --show-sdk-path)"
-IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-IOS_SIM_SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+# Detect available SDKs
+AVAILABLE_PLATFORMS=()
 
-# Build for each platform
-build_platform "macos" "arm64;x86_64" "${MACOS_SDK}" "${MACOS_DEPLOYMENT_TARGET}"
-build_platform "ios" "arm64" "${IOS_SDK}" "${IOS_DEPLOYMENT_TARGET}"
-build_platform "ios-simulator" "arm64;x86_64" "${IOS_SIM_SDK}" "${IOS_DEPLOYMENT_TARGET}"
+if xcrun --sdk macosx --show-sdk-path &>/dev/null; then
+    build_platform "macos" "arm64 x86_64" "macosx" "-mmacosx-version-min=${MACOS_DEPLOYMENT_TARGET}"
+    AVAILABLE_PLATFORMS+=("macos")
+else
+    echo "WARNING: macOS SDK not found, skipping"
+fi
 
-# Create header directory structure for the framework
-echo "=== Preparing framework headers ==="
+if xcrun --sdk iphoneos --show-sdk-path &>/dev/null; then
+    build_platform "ios-device" "arm64" "iphoneos" "-miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}"
+    AVAILABLE_PLATFORMS+=("ios-device")
+else
+    echo "WARNING: iOS SDK not found, skipping (install Xcode for iOS support)"
+fi
 
-create_headers_dir() {
-    local dir="$1"
-    mkdir -p "${dir}/Headers/mkvtag"
-    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag.h" "${dir}/Headers/mkvtag/"
-    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag_types.h" "${dir}/Headers/mkvtag/"
-    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag_error.h" "${dir}/Headers/mkvtag/"
-    cp "${SCRIPT_DIR}/include/mkvtag/module.modulemap" "${dir}/Headers/mkvtag/"
+if xcrun --sdk iphonesimulator --show-sdk-path &>/dev/null; then
+    build_platform "ios-simulator" "arm64 x86_64" "iphonesimulator" "-mios-simulator-version-min=${IOS_DEPLOYMENT_TARGET}"
+    AVAILABLE_PLATFORMS+=("ios-simulator")
+else
+    echo "WARNING: iOS Simulator SDK not found, skipping (install Xcode for iOS support)"
+fi
 
-    # Create an umbrella header at the top level too
-    cat > "${dir}/Headers/mkvtag.h" << 'UMBRELLA_EOF'
+if [[ ${#AVAILABLE_PLATFORMS[@]} -eq 0 ]]; then
+    echo "ERROR: No SDKs available. Install Xcode or Command Line Tools."
+    exit 1
+fi
+
+# Create framework bundles for each platform
+echo ""
+echo "=== Creating framework bundles ==="
+
+create_framework() {
+    local platform="$1"
+    local fw_dir="${BUILD_DIR}/${platform}/framework/${FRAMEWORK_NAME}.framework"
+
+    mkdir -p "${fw_dir}/Headers/mkvtag"
+    mkdir -p "${fw_dir}/Modules"
+
+    # Copy public headers into framework
+    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag.h"        "${fw_dir}/Headers/mkvtag/"
+    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag_types.h"   "${fw_dir}/Headers/mkvtag/"
+    cp "${SCRIPT_DIR}/include/mkvtag/mkvtag_error.h"   "${fw_dir}/Headers/mkvtag/"
+
+    # Umbrella header
+    cat > "${fw_dir}/Headers/mkvtag.h" << 'EOF'
 /*
  * mkvtag.h - Umbrella header for mkvtag framework
  */
 #include "mkvtag/mkvtag.h"
-UMBRELLA_EOF
+EOF
 
-    # Create top-level module map
-    cat > "${dir}/Headers/module.modulemap" << 'MODMAP_EOF'
+    # Module map
+    cat > "${fw_dir}/Modules/module.modulemap" << 'EOF'
 framework module mkvtag {
     umbrella header "mkvtag.h"
     export *
     module * { export * }
 }
-MODMAP_EOF
+EOF
+
+    # Copy static library as framework binary
+    cp "${BUILD_DIR}/${platform}/libmkvtag.a" "${fw_dir}/${FRAMEWORK_NAME}"
+
+    # Info.plist
+    cat > "${fw_dir}/Info.plist" << PLISTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>${FRAMEWORK_NAME}</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.libmkvtag.${FRAMEWORK_NAME}</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>FMWK</string>
+</dict>
+</plist>
+PLISTEOF
+
+    echo "  Created: ${fw_dir}"
 }
 
-# Create framework bundles for each platform
-for platform in macos-arm64\;x86_64 ios-arm64 ios-simulator-arm64\;x86_64; do
-    platform_dir="${BUILD_DIR}/${platform}/framework"
-    mkdir -p "${platform_dir}/${FRAMEWORK_NAME}.framework"
-    create_headers_dir "${platform_dir}/${FRAMEWORK_NAME}.framework"
-    cp "${BUILD_DIR}/${platform}/install/lib/libmkvtag.a" \
-       "${platform_dir}/${FRAMEWORK_NAME}.framework/mkvtag"
+for platform in "${AVAILABLE_PLATFORMS[@]}"; do
+    create_framework "${platform}"
 done
 
-# Create XCFramework
+# Create XCFramework (requires xcodebuild from full Xcode)
+echo ""
 echo "=== Creating XCFramework ==="
 
 XCFRAMEWORK_PATH="${OUTPUT_DIR}/${FRAMEWORK_NAME}.xcframework"
 rm -rf "${XCFRAMEWORK_PATH}"
 
-xcodebuild -create-xcframework \
-    -framework "${BUILD_DIR}/macos-arm64;x86_64/framework/${FRAMEWORK_NAME}.framework" \
-    -framework "${BUILD_DIR}/ios-arm64/framework/${FRAMEWORK_NAME}.framework" \
-    -framework "${BUILD_DIR}/ios-simulator-arm64;x86_64/framework/${FRAMEWORK_NAME}.framework" \
-    -output "${XCFRAMEWORK_PATH}"
+FW_ARGS=()
+for platform in "${AVAILABLE_PLATFORMS[@]}"; do
+    FW_ARGS+=(-framework "${BUILD_DIR}/${platform}/framework/${FRAMEWORK_NAME}.framework")
+done
+
+if xcodebuild -version &>/dev/null; then
+    xcodebuild -create-xcframework \
+        "${FW_ARGS[@]}" \
+        -output "${XCFRAMEWORK_PATH}"
+else
+    echo ""
+    echo "WARNING: xcodebuild not available (requires full Xcode install)."
+    echo "Static libraries were built successfully for: ${AVAILABLE_PLATFORMS[*]}"
+    echo ""
+    for platform in "${AVAILABLE_PLATFORMS[@]}"; do
+        echo "  Framework: ${BUILD_DIR}/${platform}/framework/${FRAMEWORK_NAME}.framework"
+    done
+    echo ""
+    echo "Install Xcode to create the XCFramework bundle."
+    exit 0
+fi
 
 echo ""
 echo "=== XCFramework created successfully ==="
