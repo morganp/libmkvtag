@@ -55,6 +55,14 @@ mkvtag_collection_free(ctx, coll);
 mkvtag_destroy(ctx);
 ```
 
+## Prerequisites
+
+- **Xcode Command Line Tools** — provides `clang`, `ar`, and `xcrun` (`xcode-select --install`)
+- **CMake** (optional) — for CMake-based builds and running tests (`brew install cmake`)
+- **Ninja** (optional) — recommended CMake generator (`brew install ninja`)
+
+No other external dependencies. The library uses only POSIX and the C standard library.
+
 ## Building
 
 ### With CMake
@@ -83,6 +91,12 @@ xcrun ar rcs libmkvtag.a *.o
 ```
 
 Targets: macOS 10.15+ (arm64, x86_64), iOS 13.0+ (arm64), iOS Simulator (arm64, x86_64).
+
+## Testing
+
+```sh
+cmake -S . -B build -DMKVTAG_BUILD_TESTS=ON && cmake --build build && ctest --test-dir build --output-on-failure
+```
 
 ## API Reference
 

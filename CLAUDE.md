@@ -21,7 +21,10 @@ Build XCFramework (macOS + iOS):
 
 ## Testing
 
-No automated tests yet. Verify by building the library and linking against a consumer project.
+Build and run tests:
+```sh
+cmake -S . -B build -DMKVTAG_BUILD_TESTS=ON && cmake --build build && ctest --test-dir build --output-on-failure
+```
 
 ## Architecture
 
