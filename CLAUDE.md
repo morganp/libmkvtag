@@ -25,7 +25,7 @@ No automated tests yet. Verify by building the library and linking against a con
 
 ## Architecture
 
-Pure C11 static library for reading/writing Matroska (MKV/WebM) metadata tags. No external dependencies (POSIX only). API is compatible with [liboggtag](https://github.com/morganp/liboggtag) and [libmp3tag](https://github.com/morganp/libmp3tag).
+Pure C11 static library for reading/writing Matroska (MKV/MKA/WebM) metadata tags. No external dependencies (POSIX only). API is compatible with [liboggtag](https://github.com/morganp/liboggtag) and [libmp3tag](https://github.com/morganp/libmp3tag).
 
 ### Layers
 

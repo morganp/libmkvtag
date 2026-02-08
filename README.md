@@ -1,12 +1,12 @@
 # libmkvtag
 
-A pure C library for reading and writing Matroska (MKV/WebM) file metadata tags without loading entire files into memory.
+A pure C library for reading and writing Matroska (MKV/MKA/WebM) file metadata tags without loading entire files into memory.
 
 Designed for embedding in iOS and macOS apps via XCFramework, with a clean C API that works directly from Swift through a module map.
 
 ## Features
 
-- Read and write MKV/WebM metadata tags (title, artist, comment, etc.)
+- Read and write MKV/MKA/WebM metadata tags (title, artist, comment, etc.)
 - Memory-efficient: uses buffered I/O and skips media data (Clusters)
 - Three write strategies to minimize file modification:
   1. In-place replacement of existing Tags + adjacent Void elements
@@ -92,8 +92,8 @@ Targets: macOS 10.15+ (arm64, x86_64), iOS 13.0+ (arm64), iOS Simulator (arm64, 
 |---|---|
 | `mkvtag_create(allocator)` | Create a context (pass `NULL` for default allocator) |
 | `mkvtag_destroy(ctx)` | Destroy context and close any open file |
-| `mkvtag_open(ctx, path)` | Open an MKV file for reading |
-| `mkvtag_open_rw(ctx, path)` | Open an MKV file for reading and writing |
+| `mkvtag_open(ctx, path)` | Open a Matroska file (.mkv, .mka, .webm) for reading |
+| `mkvtag_open_rw(ctx, path)` | Open a Matroska file (.mkv, .mka, .webm) for reading and writing |
 | `mkvtag_close(ctx)` | Close the current file |
 
 ### Tag Reading

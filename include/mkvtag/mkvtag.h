@@ -1,7 +1,7 @@
 /*
  * mkvtag.h - Main public API for libmkvtag
  *
- * A pure C library for reading and writing MKV file metadata tags
+ * A pure C library for reading and writing Matroska (.mkv, .mka, .webm) metadata tags
  * without loading entire files into memory.
  *
  * Copyright (c) 2024
@@ -55,19 +55,19 @@ void mkvtag_destroy(mkvtag_context_t *ctx);
  */
 
 /**
- * Open an MKV file for reading.
+ * Open a Matroska file for reading.
  *
  * @param ctx The context
- * @param path Path to the MKV file (UTF-8)
+ * @param path Path to the Matroska file (.mkv, .mka, .webm) (UTF-8)
  * @return MKVTAG_OK on success, or an error code
  */
 int mkvtag_open(mkvtag_context_t *ctx, const char *path);
 
 /**
- * Open an MKV file for reading and writing.
+ * Open a Matroska file for reading and writing.
  *
  * @param ctx The context
- * @param path Path to the MKV file (UTF-8)
+ * @param path Path to the Matroska file (.mkv, .mka, .webm) (UTF-8)
  * @return MKVTAG_OK on success, or an error code
  */
 int mkvtag_open_rw(mkvtag_context_t *ctx, const char *path);
