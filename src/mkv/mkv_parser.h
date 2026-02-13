@@ -10,7 +10,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "../io/file_io.h"
+#include <tag_common/file_io.h>
 #include "../ebml/ebml_reader.h"
 
 #ifdef __cplusplus

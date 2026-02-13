@@ -10,7 +10,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "../util/buffer.h"
+#include <tag_common/buffer.h>
 
 #ifdef __cplusplus
 extern "C" {

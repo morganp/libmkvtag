@@ -9,7 +9,7 @@
 #define MKV_SEEKHEAD_H
 
 #include <stdint.h>
-#include "../util/buffer.h"
+#include <tag_common/buffer.h>
 
 /* Forward declaration */
 typedef struct mkv_file mkv_file_t;

@@ -6,7 +6,9 @@
  */
 
 #include "../include/mkvtag/mkvtag.h"
-#include "io/file_io.h"
+#include <tag_common/file_io.h>
+#include <tag_common/buffer.h>
+#include <tag_common/string_util.h>
 #include "ebml/ebml_ids.h"
 #include "ebml/ebml_reader.h"
 #include "ebml/ebml_writer.h"
@@ -14,10 +16,7 @@
 #include "mkv/mkv_parser.h"
 #include "mkv/mkv_tags.h"
 #include "mkv/mkv_seekhead.h"
-#include "util/buffer.h"
-#include "util/string_util.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -137,21 +136,20 @@ static int mkvtag_open_internal(mkvtag_context_t *ctx, const char *path, int wri
     }
 
     /* Open file */
-    int err;
     if (writable) {
-        err = file_open_rw(path, &ctx->file);
+        ctx->file = file_open_rw(path);
     } else {
-        err = file_open_read(path, &ctx->file);
+        ctx->file = file_open_read(path);
     }
-    if (err != MKVTAG_OK) {
-        return err;
+    if (!ctx->file) {
+        return MKVTAG_ERR_IO;
     }
 
     /* Reset MKV state */
     mkv_file_init(&ctx->mkv);
 
     /* Parse EBML header */
-    err = mkv_parse_header(&ctx->mkv, ctx->file);
+    int err = mkv_parse_header(&ctx->mkv, ctx->file);
     if (err != MKVTAG_OK) {
         file_close(ctx->file);
         ctx->file = NULL;
@@ -227,7 +225,7 @@ int mkvtag_read_tags(mkvtag_context_t *ctx, mkvtag_collection_t **tags) {
     }
 
     /* Seek to Tags element */
-    int err = file_seek(ctx->file, ctx->mkv.tags_offset, SEEK_SET);
+    int err = file_seek(ctx->file, ctx->mkv.tags_offset);
     if (err != MKVTAG_OK) return err;
 
     /* Read Tags element header */
@@ -269,7 +267,7 @@ int mkvtag_read_tag_string(mkvtag_context_t *ctx, const char *name,
         while (stag) {
             if (stag->name && str_casecmp(stag->name, name) == 0) {
                 if (stag->value) {
-                    if (str_copy(value, stag->value, size) < 0) {
+                    if (str_copy(value, size, stag->value) < 0) {
                         return MKVTAG_ERR_TAG_TOO_LARGE;
                     }
                     return MKVTAG_OK;
@@ -295,10 +293,9 @@ static int write_tags_at(mkvtag_context_t *ctx, int64_t offset,
                          const mkvtag_collection_t *tags) {
     /* Serialize tag content */
     dyn_buffer_t content;
-    int err = buffer_init(&content, 512);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&content);
 
-    err = mkv_tags_serialize(tags, &content);
+    int err = mkv_tags_serialize(tags, &content);
     if (err != MKVTAG_OK) {
         buffer_free(&content);
         return err;
@@ -306,11 +303,7 @@ static int write_tags_at(mkvtag_context_t *ctx, int64_t offset,
 
     /* Build complete Tags element */
     dyn_buffer_t tags_buf;
-    err = buffer_init(&tags_buf, content.size + 16);
-    if (err != MKVTAG_OK) {
-        buffer_free(&content);
-        return err;
-    }
+    buffer_init(&tags_buf);
 
     err = ebml_write_master_element_header(&tags_buf, MKV_ID_TAGS, content.size);
     if (err != MKVTAG_OK) {
@@ -333,7 +326,7 @@ static int write_tags_at(mkvtag_context_t *ctx, int64_t offset,
     }
 
     /* Write Tags element */
-    err = file_seek(ctx->file, offset, SEEK_SET);
+    err = file_seek(ctx->file, offset);
     if (err != MKVTAG_OK) {
         buffer_free(&tags_buf);
         return err;
@@ -351,8 +344,7 @@ static int write_tags_at(mkvtag_context_t *ctx, int64_t offset,
 
     if (remaining >= 2) {
         dyn_buffer_t void_buf;
-        err = buffer_init(&void_buf, remaining);
-        if (err != MKVTAG_OK) return err;
+        buffer_init(&void_buf);
 
         err = ebml_write_void_element(&void_buf, remaining);
         if (err != MKVTAG_OK) {
@@ -383,7 +375,7 @@ static int try_replace_existing_tags(mkvtag_context_t *ctx,
     }
 
     /* Read existing Tags element to find its total size */
-    int err = file_seek(ctx->file, ctx->mkv.tags_offset, SEEK_SET);
+    int err = file_seek(ctx->file, ctx->mkv.tags_offset);
     if (err != MKVTAG_OK) return err;
 
     ebml_element_t existing_tags;
@@ -394,7 +386,7 @@ static int try_replace_existing_tags(mkvtag_context_t *ctx,
     uint64_t available = (uint64_t)(existing_end - ctx->mkv.tags_offset);
 
     /* Check if there's a Void element right after the existing Tags */
-    err = file_seek(ctx->file, existing_end, SEEK_SET);
+    err = file_seek(ctx->file, existing_end);
     if (err == MKVTAG_OK) {
         ebml_element_t next_elem;
         err = ebml_peek_element_header(ctx->file, &next_elem);
@@ -454,21 +446,16 @@ static int try_append_tags(mkvtag_context_t *ctx,
 
     /* Serialize tags */
     dyn_buffer_t content;
-    int err = buffer_init(&content, 512);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&content);
 
-    err = mkv_tags_serialize(tags, &content);
+    int err = mkv_tags_serialize(tags, &content);
     if (err != MKVTAG_OK) {
         buffer_free(&content);
         return err;
     }
 
     dyn_buffer_t tags_buf;
-    err = buffer_init(&tags_buf, content.size + 16);
-    if (err != MKVTAG_OK) {
-        buffer_free(&content);
-        return err;
-    }
+    buffer_init(&tags_buf);
 
     err = ebml_write_master_element_header(&tags_buf, MKV_ID_TAGS, content.size);
     if (err != MKVTAG_OK) {
@@ -494,14 +481,14 @@ static int try_append_tags(mkvtag_context_t *ctx,
                               ebml_id_size(MKV_ID_SEGMENT);
 
         /* Read current size encoding length */
-        err = file_seek(ctx->file, size_offset, SEEK_SET);
+        err = file_seek(ctx->file, size_offset);
         if (err != MKVTAG_OK) {
             buffer_free(&tags_buf);
             return err;
         }
 
         uint8_t first_byte;
-        err = file_read_byte(ctx->file, &first_byte);
+        err = file_read(ctx->file, &first_byte, 1);
         if (err != MKVTAG_OK) {
             buffer_free(&tags_buf);
             return err;
@@ -519,7 +506,7 @@ static int try_append_tags(mkvtag_context_t *ctx,
         }
 
         /* Write updated Segment size */
-        err = file_seek(ctx->file, size_offset, SEEK_SET);
+        err = file_seek(ctx->file, size_offset);
         if (err != MKVTAG_OK) {
             buffer_free(&tags_buf);
             return err;
@@ -535,7 +522,7 @@ static int try_append_tags(mkvtag_context_t *ctx,
     }
 
     /* Write Tags at end of Segment */
-    err = file_seek(ctx->file, segment_content_end, SEEK_SET);
+    err = file_seek(ctx->file, segment_content_end);
     if (err != MKVTAG_OK) {
         buffer_free(&tags_buf);
         return err;
@@ -547,12 +534,12 @@ static int try_append_tags(mkvtag_context_t *ctx,
     buffer_free(&tags_buf);
     if (err != MKVTAG_OK) return err;
 
-    err = file_flush(ctx->file);
+    err = file_sync(ctx->file);
     if (err != MKVTAG_OK) return err;
 
     /* Void-out old Tags if they exist */
     if (ctx->mkv.tags_offset >= 0) {
-        err = file_seek(ctx->file, ctx->mkv.tags_offset, SEEK_SET);
+        err = file_seek(ctx->file, ctx->mkv.tags_offset);
         if (err == MKVTAG_OK) {
             ebml_element_t old_tags;
             err = ebml_read_element_header(ctx->file, &old_tags);
@@ -560,13 +547,12 @@ static int try_append_tags(mkvtag_context_t *ctx,
                 uint64_t old_total = (uint64_t)(old_tags.end_offset - ctx->mkv.tags_offset);
                 if (old_total >= 2) {
                     dyn_buffer_t void_buf;
-                    if (buffer_init(&void_buf, old_total) == MKVTAG_OK) {
-                        if (ebml_write_void_element(&void_buf, old_total) == MKVTAG_OK) {
-                            file_seek(ctx->file, ctx->mkv.tags_offset, SEEK_SET);
-                            file_write(ctx->file, void_buf.data, void_buf.size);
-                        }
-                        buffer_free(&void_buf);
+                    buffer_init(&void_buf);
+                    if (ebml_write_void_element(&void_buf, old_total) == MKVTAG_OK) {
+                        file_seek(ctx->file, ctx->mkv.tags_offset);
+                        file_write(ctx->file, void_buf.data, void_buf.size);
                     }
+                    buffer_free(&void_buf);
                 }
             }
         }
@@ -575,7 +561,7 @@ static int try_append_tags(mkvtag_context_t *ctx,
     ctx->mkv.tags_offset = new_tags_offset;
     mkv_seekhead_update_tags(&ctx->mkv, new_tags_offset);
 
-    return file_flush(ctx->file);
+    return file_sync(ctx->file);
 }
 
 int mkvtag_write_tags(mkvtag_context_t *ctx, const mkvtag_collection_t *tags) {
@@ -601,7 +587,7 @@ int mkvtag_write_tags(mkvtag_context_t *ctx, const mkvtag_collection_t *tags) {
     if (ctx->mkv.tags_offset >= 0) {
         int err = try_replace_existing_tags(ctx, tags);
         if (err == MKVTAG_OK) {
-            return file_flush(ctx->file);
+            return file_sync(ctx->file);
         }
     }
 
@@ -609,7 +595,7 @@ int mkvtag_write_tags(mkvtag_context_t *ctx, const mkvtag_collection_t *tags) {
     {
         int err = try_replace_void(ctx, tags);
         if (err == MKVTAG_OK) {
-            return file_flush(ctx->file);
+            return file_sync(ctx->file);
         }
     }
 

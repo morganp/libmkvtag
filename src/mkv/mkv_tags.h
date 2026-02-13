@@ -10,7 +10,7 @@
 
 #include "../include/mkvtag/mkvtag_types.h"
 #include "mkv_parser.h"
-#include "../util/buffer.h"
+#include <tag_common/buffer.h>
 
 #ifdef __cplusplus
 extern "C" {

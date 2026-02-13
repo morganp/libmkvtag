@@ -13,7 +13,6 @@
 #include "../ebml/ebml_writer.h"
 #include "../include/mkvtag/mkvtag_error.h"
 
-#include <stdio.h>
 #include <string.h>
 
 int mkv_seekhead_build_entry(dyn_buffer_t *buf, uint32_t element_id,
@@ -32,13 +31,12 @@ int mkv_seekhead_build_entry(dyn_buffer_t *buf, uint32_t element_id,
 
     /* First, build the inner content */
     dyn_buffer_t inner;
-    int err = buffer_init(&inner, 32);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&inner);
 
     /* SeekID element */
     uint8_t id_bytes[4];
     int id_len;
-    err = ebml_id_encode(element_id, id_bytes, &id_len);
+    int err = ebml_id_encode(element_id, id_bytes, &id_len);
     if (err != MKVTAG_OK) {
         buffer_free(&inner);
         return err;
@@ -89,7 +87,7 @@ int mkv_seekhead_update_tags(mkv_file_t *mkv, int64_t tags_offset) {
 
     file_handle_t *handle = mkv->handle;
 
-    int err = file_seek(handle, mkv->seekhead_offset, SEEK_SET);
+    int err = file_seek(handle, mkv->seekhead_offset);
     if (err != MKVTAG_OK) return err;
 
     ebml_element_t seekhead;
@@ -156,7 +154,7 @@ int mkv_seekhead_update_tags(mkv_file_t *mkv, int64_t tags_offset) {
                 return MKVTAG_OK; /* Silently skip */
             }
 
-            err = file_seek(handle, position_data_offset, SEEK_SET);
+            err = file_seek(handle, position_data_offset);
             if (err != MKVTAG_OK) return err;
 
             err = file_write(handle, pos_buf, position_data_size);

@@ -9,7 +9,6 @@
 #include "ebml_vint.h"
 #include "../include/mkvtag/mkvtag_error.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,9 +24,8 @@ int ebml_read_element_header(file_handle_t *handle, ebml_element_t *element) {
 
     /* Read element ID (up to 4 bytes for EBML/Matroska) */
     uint8_t buffer[8];
-    size_t bytes_read;
-    int err = file_read(handle, buffer, 1, &bytes_read);
-    if (err != MKVTAG_OK || bytes_read < 1) {
+    int err = file_read(handle, buffer, 1);
+    if (err != 0) {
         return MKVTAG_ERR_TRUNCATED;
     }
 
@@ -38,8 +36,8 @@ int ebml_read_element_header(file_handle_t *handle, ebml_element_t *element) {
 
     /* Read remaining ID bytes */
     if (id_length > 1) {
-        err = file_read(handle, buffer + 1, id_length - 1, &bytes_read);
-        if (err != MKVTAG_OK || bytes_read < (size_t)(id_length - 1)) {
+        err = file_read(handle, buffer + 1, id_length - 1);
+        if (err != 0) {
             return MKVTAG_ERR_TRUNCATED;
         }
     }
@@ -53,8 +51,8 @@ int ebml_read_element_header(file_handle_t *handle, ebml_element_t *element) {
     element->id_length = id_length;
 
     /* Read element size VINT */
-    err = file_read(handle, buffer, 1, &bytes_read);
-    if (err != MKVTAG_OK || bytes_read < 1) {
+    err = file_read(handle, buffer, 1);
+    if (err != 0) {
         return MKVTAG_ERR_TRUNCATED;
     }
 
@@ -65,8 +63,8 @@ int ebml_read_element_header(file_handle_t *handle, ebml_element_t *element) {
 
     /* Read remaining size bytes */
     if (size_length > 1) {
-        err = file_read(handle, buffer + 1, size_length - 1, &bytes_read);
-        if (err != MKVTAG_OK || bytes_read < (size_t)(size_length - 1)) {
+        err = file_read(handle, buffer + 1, size_length - 1);
+        if (err != 0) {
             return MKVTAG_ERR_TRUNCATED;
         }
     }
@@ -100,7 +98,7 @@ int ebml_peek_element_header(file_handle_t *handle, ebml_element_t *element) {
 
     int64_t pos = file_tell(handle);
     int err = ebml_read_element_header(handle, element);
-    file_seek(handle, pos, SEEK_SET);
+    file_seek(handle, pos);
     return err;
 }
 
@@ -114,7 +112,7 @@ int ebml_skip_element(file_handle_t *handle, const ebml_element_t *element) {
         return MKVTAG_ERR_CORRUPT;
     }
 
-    return file_seek(handle, element->end_offset, SEEK_SET);
+    return file_seek(handle, element->end_offset);
 }
 
 int ebml_read_uint(file_handle_t *handle, const ebml_element_t *element,
@@ -128,7 +126,7 @@ int ebml_read_uint(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Seek to element data */
-    int err = file_seek(handle, element->data_offset, SEEK_SET);
+    int err = file_seek(handle, element->data_offset);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -141,7 +139,7 @@ int ebml_read_uint(file_handle_t *handle, const ebml_element_t *element,
 
     /* Read data in big-endian format */
     uint8_t buffer[8];
-    err = file_read_exact(handle, buffer, (size_t)element->size);
+    err = file_read(handle, buffer, (size_t)element->size);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -166,7 +164,7 @@ int ebml_read_int(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Seek to element data */
-    int err = file_seek(handle, element->data_offset, SEEK_SET);
+    int err = file_seek(handle, element->data_offset);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -179,7 +177,7 @@ int ebml_read_int(file_handle_t *handle, const ebml_element_t *element,
 
     /* Read data in big-endian format */
     uint8_t buffer[8];
-    err = file_read_exact(handle, buffer, (size_t)element->size);
+    err = file_read(handle, buffer, (size_t)element->size);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -205,7 +203,7 @@ int ebml_read_float(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Seek to element data */
-    int err = file_seek(handle, element->data_offset, SEEK_SET);
+    int err = file_seek(handle, element->data_offset);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -217,7 +215,7 @@ int ebml_read_float(file_handle_t *handle, const ebml_element_t *element,
     }
 
     uint8_t buffer[8];
-    err = file_read_exact(handle, buffer, (size_t)element->size);
+    err = file_read(handle, buffer, (size_t)element->size);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -259,7 +257,7 @@ int ebml_read_string(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Seek to element data */
-    int err = file_seek(handle, element->data_offset, SEEK_SET);
+    int err = file_seek(handle, element->data_offset);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -271,7 +269,7 @@ int ebml_read_string(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Read string data */
-    err = file_read_exact(handle, buffer, (size_t)element->size);
+    err = file_read(handle, buffer, (size_t)element->size);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -320,14 +318,14 @@ int ebml_read_binary(file_handle_t *handle, const ebml_element_t *element,
     }
 
     /* Seek to element data */
-    int err = file_seek(handle, element->data_offset, SEEK_SET);
+    int err = file_seek(handle, element->data_offset);
     if (err != MKVTAG_OK) {
         return err;
     }
 
     /* Read as much as will fit */
     size_t to_read = (element->size < buffer_size) ? (size_t)element->size : buffer_size;
-    err = file_read_exact(handle, buffer, to_read);
+    err = file_read(handle, buffer, to_read);
     if (err != MKVTAG_OK) {
         return err;
     }

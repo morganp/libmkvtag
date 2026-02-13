@@ -4,14 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
-Build library:
+Build library (requires libtag_common built first):
 ```sh
-cd build && xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -I ../include -I ../src \
+cd build && xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -I ../include -I ../src -I ../deps/libtag_common/include \
     ../src/ebml/ebml_vint.c ../src/ebml/ebml_reader.c ../src/ebml/ebml_writer.c \
-    ../src/io/file_io.c ../src/util/buffer.c ../src/util/string_util.c \
     ../src/mkv/mkv_parser.c ../src/mkv/mkv_tags.c ../src/mkv/mkv_seekhead.c \
     ../src/mkvtag.c \
-    && xcrun ar rcs libmkvtag.a ebml_vint.o ebml_reader.o ebml_writer.o file_io.o buffer.o string_util.o mkv_parser.o mkv_tags.o mkv_seekhead.o mkvtag.o
+    && xcrun ar rcs libmkvtag.a ebml_vint.o ebml_reader.o ebml_writer.o mkv_parser.o mkv_tags.o mkv_seekhead.o mkvtag.o
 ```
 
 Build XCFramework (macOS + iOS):
@@ -36,8 +35,7 @@ Pure C11 static library for reading/writing Matroska (MKV/MKA/WebM) metadata tag
 - **Main implementation** (`src/mkvtag.c`) — Context lifecycle, tag read/write orchestration, collection building, simple get/set convenience API
 - **EBML** (`src/ebml/`) — Variable-length integer codec (`ebml_vint`), stream-based element parsing (`ebml_reader`), element serialization (`ebml_writer`), element ID constants (`ebml_ids.h`)
 - **MKV** (`src/mkv/`) — Header validation and segment parsing (`mkv_parser`), tag parsing and serialization (`mkv_tags`), SeekHead entry management (`mkv_seekhead`)
-- **I/O** (`src/io/`) — Buffered POSIX file I/O (8KB read buffer, lazy seek)
-- **Util** (`src/util/`) — Dynamic byte buffer (`dyn_buffer_t`), string helpers (duplication, case-insensitive compare)
+- **Shared utilities** (`deps/libtag_common/`) — Buffered file I/O, dynamic byte buffer, string helpers (via libtag_common submodule)
 
 ### Write Strategies
 

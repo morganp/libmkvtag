@@ -55,32 +55,22 @@ mkvtag_collection_free(ctx, coll);
 mkvtag_destroy(ctx);
 ```
 
-## Prerequisites
+## Dependencies
 
-- **Xcode Command Line Tools** — provides `clang`, `ar`, and `xcrun` (`xcode-select --install`)
-- **CMake** (optional) — for CMake-based builds and running tests (`brew install cmake`)
-- **Ninja** (optional) — recommended CMake generator (`brew install ninja`)
-
-No other external dependencies. The library uses only POSIX and the C standard library.
+- [libtag_common](https://github.com/morganp/libtag_common) — shared I/O, buffer, and string utilities (included as git submodule)
 
 ## Building
 
-### With CMake
+Clone with submodules:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+git clone --recursive https://github.com/morganp/libmkvtag.git
 ```
 
-### With Xcode toolchain (no CMake required)
+If already cloned:
 
 ```sh
-xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -I include -I src \
-    src/ebml/ebml_vint.c src/ebml/ebml_reader.c src/ebml/ebml_writer.c \
-    src/io/file_io.c src/util/buffer.c src/util/string_util.c \
-    src/mkv/mkv_parser.c src/mkv/mkv_tags.c src/mkv/mkv_seekhead.c \
-    src/mkvtag.c
-xcrun ar rcs libmkvtag.a *.o
+git submodule update --init
 ```
 
 ### XCFramework for iOS/macOS
@@ -91,6 +81,16 @@ xcrun ar rcs libmkvtag.a *.o
 ```
 
 Targets: macOS 10.15+ (arm64, x86_64), iOS 13.0+ (arm64), iOS Simulator (arm64, x86_64).
+
+### Manual build
+
+```sh
+xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -I include -I src -I deps/libtag_common/include \
+    src/ebml/ebml_vint.c src/ebml/ebml_reader.c src/ebml/ebml_writer.c \
+    src/mkv/mkv_parser.c src/mkv/mkv_tags.c src/mkv/mkv_seekhead.c \
+    src/mkvtag.c
+xcrun ar rcs libmkvtag.a *.o
+```
 
 ## Testing
 
@@ -149,6 +149,8 @@ All functions return `MKVTAG_OK` (0) on success or a negative error code. Use `m
 │   ├── mkvtag_types.h      Type definitions
 │   ├── mkvtag_error.h      Error codes
 │   └── module.modulemap    Swift interop
+├── deps/
+│   └── libtag_common/      Shared I/O, buffer & string utilities (submodule)
 ├── src/
 │   ├── ebml/               EBML format layer
 │   │   ├── ebml_vint       Variable-length integer codec
@@ -159,13 +161,7 @@ All functions return `MKVTAG_OK` (0) on success or a negative error code. Use `m
 │   │   ├── mkv_parser      Header validation, segment parsing, SeekHead
 │   │   ├── mkv_tags        Tag parsing and serialization
 │   │   └── mkv_seekhead    SeekHead entry management
-│   ├── io/
-│   │   └── file_io         Buffered POSIX file I/O (8KB buffer)
-│   ├── util/
-│   │   ├── buffer          Dynamic byte buffer
-│   │   └── string_util     String duplication, case-insensitive compare
 │   └── mkvtag.c            Main API implementation
-├── CMakeLists.txt
 └── build_xcframework.sh
 ```
 

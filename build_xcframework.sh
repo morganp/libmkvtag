@@ -16,14 +16,14 @@ FRAMEWORK_NAME="mkvtag"
 MACOS_DEPLOYMENT_TARGET="10.15"
 IOS_DEPLOYMENT_TARGET="13.0"
 
+# Tag common library (shared utilities)
+TAG_COMMON_DIR="${SCRIPT_DIR}/deps/libtag_common"
+
 # Source files
 SOURCES=(
     src/ebml/ebml_vint.c
     src/ebml/ebml_reader.c
     src/ebml/ebml_writer.c
-    src/io/file_io.c
-    src/util/buffer.c
-    src/util/string_util.c
     src/mkv/mkv_parser.c
     src/mkv/mkv_tags.c
     src/mkv/mkv_seekhead.c
@@ -31,7 +31,7 @@ SOURCES=(
 )
 
 CFLAGS=(-std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -O2)
-INCLUDES=("-I${SCRIPT_DIR}/include" "-I${SCRIPT_DIR}/src")
+INCLUDES=("-I${SCRIPT_DIR}/include" "-I${SCRIPT_DIR}/src" "-I${TAG_COMMON_DIR}/include")
 
 # Clean if requested
 if [[ "${1:-}" == "--clean" ]]; then

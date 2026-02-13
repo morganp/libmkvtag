@@ -12,7 +12,6 @@
 #include "../ebml/ebml_vint.h"
 #include "../include/mkvtag/mkvtag_error.h"
 
-#include <stdio.h>
 #include <string.h>
 
 void mkv_file_init(mkv_file_t *mkv) {
@@ -37,7 +36,7 @@ int mkv_parse_header(mkv_file_t *mkv, file_handle_t *handle) {
     mkv->handle = handle;
 
     /* Seek to beginning */
-    int err = file_seek(handle, 0, SEEK_SET);
+    int err = file_seek(handle, 0);
     if (err != MKVTAG_OK) {
         return err;
     }
@@ -153,7 +152,7 @@ static void mkv_store_element_offset(mkv_file_t *mkv, uint32_t id, int64_t offse
 static int mkv_parse_seekhead(mkv_file_t *mkv, const ebml_element_t *seekhead) {
     file_handle_t *handle = mkv->handle;
 
-    int err = file_seek(handle, seekhead->data_offset, SEEK_SET);
+    int err = file_seek(handle, seekhead->data_offset);
     if (err != MKVTAG_OK) return err;
 
     while (!ebml_at_element_end(handle, seekhead)) {
@@ -210,7 +209,7 @@ static int mkv_parse_seekhead(mkv_file_t *mkv, const ebml_element_t *seekhead) {
 static int mkv_scan_structure(mkv_file_t *mkv) {
     file_handle_t *handle = mkv->handle;
 
-    int err = file_seek(handle, mkv->segment_data_offset, SEEK_SET);
+    int err = file_seek(handle, mkv->segment_data_offset);
     if (err != MKVTAG_OK) return err;
 
     int64_t segment_end;
@@ -283,7 +282,7 @@ int mkv_parse_structure(mkv_file_t *mkv) {
 
     /* If we found a SeekHead, use it to find elements after clusters */
     if (mkv->seekhead_offset >= 0) {
-        err = file_seek(handle, mkv->seekhead_offset, SEEK_SET);
+        err = file_seek(handle, mkv->seekhead_offset);
         if (err != MKVTAG_OK) return err;
 
         ebml_element_t seekhead;

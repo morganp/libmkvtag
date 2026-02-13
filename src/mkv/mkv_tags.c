@@ -10,10 +10,9 @@
 #include "../ebml/ebml_reader.h"
 #include "../ebml/ebml_writer.h"
 #include "../ebml/ebml_vint.h"
-#include "../util/string_util.h"
+#include <tag_common/string_util.h>
 #include "../include/mkvtag/mkvtag_error.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,7 +27,7 @@ static int parse_targets(mkv_file_t *mkv, const ebml_element_t *targets_elem,
                          mkvtag_tag_t *tag) {
     file_handle_t *handle = mkv->handle;
 
-    int err = file_seek(handle, targets_elem->data_offset, SEEK_SET);
+    int err = file_seek(handle, targets_elem->data_offset);
     if (err != MKVTAG_OK) return err;
 
     /* Set default target type */
@@ -123,7 +122,7 @@ static mkvtag_simple_tag_t *parse_simple_tag(mkv_file_t *mkv,
 
     stag->is_default = 1; /* Default per spec */
 
-    int err = file_seek(handle, simple_elem->data_offset, SEEK_SET);
+    int err = file_seek(handle, simple_elem->data_offset);
     if (err != MKVTAG_OK) {
         free(stag);
         return NULL;
@@ -183,7 +182,7 @@ static mkvtag_tag_t *parse_tag(mkv_file_t *mkv, const ebml_element_t *tag_elem) 
 
     tag->target_type = MKVTAG_TARGET_ALBUM; /* Default */
 
-    int err = file_seek(handle, tag_elem->data_offset, SEEK_SET);
+    int err = file_seek(handle, tag_elem->data_offset);
     if (err != MKVTAG_OK) {
         free(tag);
         return NULL;
@@ -228,7 +227,7 @@ int mkv_tags_parse(mkv_file_t *mkv, const ebml_element_t *tags_element,
 
     file_handle_t *handle = mkv->handle;
 
-    int err = file_seek(handle, tags_element->data_offset, SEEK_SET);
+    int err = file_seek(handle, tags_element->data_offset);
     if (err != MKVTAG_OK) {
         free(coll);
         return err;
@@ -271,10 +270,10 @@ static int serialize_simple_tag(const mkvtag_simple_tag_t *stag, dyn_buffer_t *b
 
     /* Build SimpleTag content */
     dyn_buffer_t content;
-    int err = buffer_init(&content, 128);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&content);
 
     /* TagName (required) */
+    int err;
     if (stag->name) {
         err = ebml_write_string_element(&content, MKV_ID_TAG_NAME, stag->name);
         if (err != MKVTAG_OK) { buffer_free(&content); return err; }
@@ -326,11 +325,10 @@ static int serialize_targets(const mkvtag_tag_t *tag, dyn_buffer_t *buf) {
     if (!tag || !buf) return MKVTAG_ERR_INVALID_ARG;
 
     dyn_buffer_t content;
-    int err = buffer_init(&content, 64);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&content);
 
     /* TargetTypeValue */
-    err = ebml_write_uint_element(&content, MKV_ID_TARGET_TYPE_VALUE,
+    int err = ebml_write_uint_element(&content, MKV_ID_TARGET_TYPE_VALUE,
                                   (uint64_t)tag->target_type);
     if (err != MKVTAG_OK) { buffer_free(&content); return err; }
 
@@ -377,11 +375,10 @@ static int serialize_tag(const mkvtag_tag_t *tag, dyn_buffer_t *buf) {
     if (!tag || !buf) return MKVTAG_ERR_INVALID_ARG;
 
     dyn_buffer_t content;
-    int err = buffer_init(&content, 256);
-    if (err != MKVTAG_OK) return err;
+    buffer_init(&content);
 
     /* Targets */
-    err = serialize_targets(tag, &content);
+    int err = serialize_targets(tag, &content);
     if (err != MKVTAG_OK) { buffer_free(&content); return err; }
 
     /* SimpleTags */
@@ -419,7 +416,7 @@ size_t mkv_tags_total_size(const mkvtag_collection_t *collection) {
 
     /* Serialize to get exact size */
     dyn_buffer_t content;
-    if (buffer_init(&content, 512) != MKVTAG_OK) return 0;
+    buffer_init(&content);
 
     if (mkv_tags_serialize(collection, &content) != MKVTAG_OK) {
         buffer_free(&content);
