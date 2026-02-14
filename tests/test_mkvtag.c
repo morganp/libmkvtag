@@ -9,7 +9,7 @@
 
 #include "ebml/ebml_writer.h"
 #include "ebml/ebml_ids.h"
-#include "util/buffer.h"
+#include <tag_common/buffer.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ static void create_mkv_file(const char *path, const char *doctype)
 
     /* Build EBML Header content */
     dyn_buffer_t hdr_content;
-    buffer_init(&hdr_content, 64);
+    buffer_init(&hdr_content);
     ebml_write_uint_element(&hdr_content, EBML_ID_VERSION, 1);
     ebml_write_uint_element(&hdr_content, EBML_ID_READ_VERSION, 1);
     ebml_write_uint_element(&hdr_content, EBML_ID_MAX_ID_LENGTH, 4);
@@ -55,7 +55,7 @@ static void create_mkv_file(const char *path, const char *doctype)
 
     /* EBML Header master element */
     dyn_buffer_t ebml_hdr;
-    buffer_init(&ebml_hdr, 64);
+    buffer_init(&ebml_hdr);
     ebml_write_master_element_header(&ebml_hdr, EBML_ID_EBML, hdr_content.size);
     buffer_append(&ebml_hdr, hdr_content.data, hdr_content.size);
     buffer_free(&hdr_content);
@@ -64,21 +64,21 @@ static void create_mkv_file(const char *path, const char *doctype)
 
     /* Info element content */
     dyn_buffer_t info_content;
-    buffer_init(&info_content, 64);
+    buffer_init(&info_content);
     ebml_write_uint_element(&info_content, MKV_ID_TIMECODE_SCALE, 1000000);
     ebml_write_string_element(&info_content, MKV_ID_MUXING_APP, "test");
     ebml_write_string_element(&info_content, MKV_ID_WRITING_APP, "test");
 
     /* Info master element */
     dyn_buffer_t info_elem;
-    buffer_init(&info_elem, 64);
+    buffer_init(&info_elem);
     ebml_write_master_element_header(&info_elem, MKV_ID_INFO, info_content.size);
     buffer_append(&info_elem, info_content.data, info_content.size);
     buffer_free(&info_content);
 
     /* Void element for padding (~4KB) */
     dyn_buffer_t void_elem;
-    buffer_init(&void_elem, 4096);
+    buffer_init(&void_elem);
     ebml_write_void_element(&void_elem, 4096);
 
     /* Segment content = Info + Void */
@@ -86,7 +86,7 @@ static void create_mkv_file(const char *path, const char *doctype)
 
     /* Segment master element */
     dyn_buffer_t segment;
-    buffer_init(&segment, segment_content_size + 16);
+    buffer_init(&segment);
     ebml_write_master_element_header(&segment, MKV_ID_SEGMENT, segment_content_size);
     buffer_append(&segment, info_elem.data, info_elem.size);
     buffer_append(&segment, void_elem.data, void_elem.size);

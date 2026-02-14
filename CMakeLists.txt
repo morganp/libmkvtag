@@ -9,13 +9,13 @@ set(MKVTAG_SOURCES
     src/ebml/ebml_vint.c
     src/ebml/ebml_reader.c
     src/ebml/ebml_writer.c
-    src/io/file_io.c
     src/mkv/mkv_parser.c
     src/mkv/mkv_tags.c
     src/mkv/mkv_seekhead.c
-    src/util/buffer.c
-    src/util/string_util.c
     src/mkvtag.c
+    deps/libtag_common/src/file_io.c
+    deps/libtag_common/src/buffer.c
+    deps/libtag_common/src/string_util.c
 )
 
 # Public headers
@@ -34,6 +34,7 @@ target_include_directories(mkvtag
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/libtag_common/include
 )
 
 # Compiler warnings

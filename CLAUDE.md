@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
-Build library (requires libtag_common built first):
+Build library:
 ```sh
-cd build && xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -I ../include -I ../src -I ../deps/libtag_common/include \
+mkdir -p build && cd build && xcrun clang -c -std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -I ../include -I ../src -I ../deps/libtag_common/include \
     ../src/ebml/ebml_vint.c ../src/ebml/ebml_reader.c ../src/ebml/ebml_writer.c \
     ../src/mkv/mkv_parser.c ../src/mkv/mkv_tags.c ../src/mkv/mkv_seekhead.c \
     ../src/mkvtag.c \
-    && xcrun ar rcs libmkvtag.a ebml_vint.o ebml_reader.o ebml_writer.o mkv_parser.o mkv_tags.o mkv_seekhead.o mkvtag.o
+    ../deps/libtag_common/src/file_io.c ../deps/libtag_common/src/buffer.c ../deps/libtag_common/src/string_util.c \
+    && xcrun ar rcs libmkvtag.a ebml_vint.o ebml_reader.o ebml_writer.o mkv_parser.o mkv_tags.o mkv_seekhead.o mkvtag.o file_io.o buffer.o string_util.o
 ```
 
 Build XCFramework (macOS + iOS):

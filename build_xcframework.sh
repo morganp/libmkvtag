@@ -28,6 +28,9 @@ SOURCES=(
     src/mkv/mkv_tags.c
     src/mkv/mkv_seekhead.c
     src/mkvtag.c
+    deps/libtag_common/src/file_io.c
+    deps/libtag_common/src/buffer.c
+    deps/libtag_common/src/string_util.c
 )
 
 CFLAGS=(-std=c11 -Wall -Wextra -Wpedantic -Wno-unused-parameter -O2)
